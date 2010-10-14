@@ -131,7 +131,7 @@ module ActiveRecord
           type != :string && !null && default == ''
         end
     end
-
+    
     class Mysql2Adapter < AbstractAdapter
       cattr_accessor :emulate_booleans
       self.emulate_booleans = true
@@ -642,6 +642,30 @@ module ActiveRecord
           end
           column
         end
+    end
+    
+    module SchemaStatements
+      def add_fulltext_index(table_name, column_name, options = { })
+        column_names = Array(column_name)
+
+        index_type = 'FULLTEXT'
+        index_name = fulltext_column_name(table_name, column_names, options)
+
+        quoted_column_names = column_names.map { |e| quote_column_name(e) }.join(", ")
+
+        execute "CREATE #{index_type} INDEX #{quote_column_name(index_name)} ON #{table_name} (#{quoted_column_names})"
+      end
+
+      def remove_fulltext_index(table_name, column_name, options = { })
+        column_names = Array(column_name)
+
+        index_name = fulltext_column_name(table_name, column_names, options)
+        execute "DROP INDEX #{index_name} ON #{table_name}"
+      end
+
+      def fulltext_column_name(table_name, column_names, options)
+        'fulltext_' + (options[:name] or index_name(table_name, :column => column_names))
+      end
     end
   end
 end
